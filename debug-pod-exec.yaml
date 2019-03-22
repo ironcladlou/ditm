@@ -1,0 +1,38 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  namespace: {namespace}
+  name: {name}
+spec:
+  nodeName: {nodeName}
+  hostNetwork: true                     
+  hostPID: true
+  containers:
+  - name: debug
+    image: {image}
+    command:
+    - /bin/bash
+    - -c
+    - |
+      #!/bin/bash
+      while true; do
+        sleep 60
+      done
+    securityContext:
+      privileged: true
+      runAsUser: 0
+    volumeMounts:
+    - mountPath: /var/run/crio/crio.sock
+      name: cri
+    env:
+    - name: CONTAINER_RUNTIME_ENDPOINT
+      value: /var/run/crio/crio.sock
+    - name: IMAGE_SERVICE_ENDPOINT
+      value: /var/run/crio/crio.sock
+    - name: CONTAINER_ID
+      value: {containerID}
+  volumes:
+  - name: cri
+    hostPath:
+      path: /var/run/crio/crio.sock
+      type: Socket

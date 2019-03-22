@@ -1,0 +1,5 @@
+namespace: {{ .metadata.namespace }}
+name: {{ .metadata.name }}
+nodeName: {{ .spec.nodeName }}
+containerID: {{ (index .status.containerStatuses 0).containerID }}
+podIP: {{ .status.podIP }}
