@@ -1,6 +1,6 @@
 from fedora
 
-RUN yum install -y wget iptables iproute tcpdump
+RUN yum install -y wget iptables iproute tcpdump procps-ng
 
 # Install crictl
 ENV CRICTL_VERSION="v1.13.0"
