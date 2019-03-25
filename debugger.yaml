@@ -1,0 +1,61 @@
+kind: Template
+apiVersion: v1
+metadata:
+  name: ditm-shell
+  annotations:
+    description: "Template for a diagnostic shell targeting a specific pod."
+parameters:
+- description: 'Namespace of the diagnostics pod.'
+  name: NAMESPACE
+  required: true
+- description: 'Name of the diagnostics pod.'
+  name: NAME
+  required: true
+- description: 'Node on which the diagnostics pod should be scheduled.'
+  name: NODE_NAME
+  required: true
+- description: 'Diagnostics pod image.'
+  name: IMAGE
+  value: 'docker.io/ironcladlou/ditm:latest'
+- description: 'status.containerStatuses[].containerID of the pod to diagnose.'
+  name: CONTAINER_ID
+  required: true
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    namespace: ${NAMESPACE}
+    name: ${NAME}
+  spec:
+    nodeName: ${NODE_NAME}
+    hostNetwork: true                     
+    hostPID: true
+    containers:
+    - name: debug
+      image: ${IMAGE}
+      command:
+      - /bin/bash
+      - -c
+      - |-
+        #/bin/bash
+        while true; do
+          sleep 10
+        done
+      securityContext:
+        privileged: true
+        runAsUser: 0
+      volumeMounts:
+      - mountPath: /var/run/crio/crio.sock
+        name: cri
+      env:
+      - name: CONTAINER_RUNTIME_ENDPOINT
+        value: /var/run/crio/crio.sock
+      - name: IMAGE_SERVICE_ENDPOINT
+        value: /var/run/crio/crio.sock
+      - name: CONTAINER_ID
+        value: ${CONTAINER_ID}
+    volumes:
+    - name: cri
+      hostPath:
+        path: /var/run/crio/crio.sock
+        type: Socket

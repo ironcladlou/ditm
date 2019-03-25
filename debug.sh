@@ -2,7 +2,7 @@
 set -euo pipefail
 
 function usage_and_exit {
-  echo "WHAT=<shell|tcpdump> ${0##*/} <namespace> <pod-name>"
+  echo "WHAT=<shell|wireshark> ${0##*/} <namespace> <pod-name>"
   exit 1
 }
 
@@ -11,25 +11,34 @@ function render {
   echo "wrote $2"
 }
 
-function run_shell {
-  YAML=$(mktemp)
-  render debug-pod-shell.yaml $YAML
-  oc debug -f $YAML --node-name=$NODE
+function cleanup {
+  oc delete -n $NAMESPACE pods/$NAME
 }
 
-function run_tcpdump {
+function create_pod {
   YAML=$(mktemp)
-  render debug-pod-exec.yaml $YAML
-  oc apply -f $YAML
+  resource=$(oc process -f debugger.yaml NAMESPACE="$NAMESPACE" NAME="$NAME" NODE_NAME="$NODE" CONTAINER_ID="$CONTAINER_ID")
+  echo $resource | oc apply -f -
+  trap cleanup EXIT
   oc wait --for=condition=Ready --namespace=$NAMESPACE pod/$NAME
-  oc exec --namespace $NAMESPACE $NAME -- /bin/bash -c $'PID=$(crictl inspect $CONTAINER_ID -o yaml | grep pid | awk \'{print $2}\'); nsenter -t $PID --net tcpdump -U -w -' | wireshark -k -i - -o "tls.keylog_file: /tmp/keys.log"
-  oc delete -f $YAML
+}
+
+function run_shell {
+  create_pod
+  oc exec -it --namespace $NAMESPACE $NAME -- /bin/bash
+}
+
+function run_wireshark {
+  create_pod
+  oc exec --namespace $NAMESPACE $NAME -- /bin/bash -c $'PID=$(crictl inspect $CONTAINER_ID -o yaml | grep pid | awk \'{print $2}\'); nsenter -t $PID --net tcpdump -U -w -' | wireshark -k -i - -o "tls.keylog_file: ${SSLKEYLOGFILE}" -o "gui.window_title:${NAMESPACE}/${TARGET}"
 }
 
 NAMESPACE="${1:-}"
 TARGET="${2:-}"
 WHAT="${WHAT:-shell}"
+
 IMAGE="${IMAGE:-docker.io/ironcladlou/ditm}"
+SSLKEYLOGFILE="${SSLKEYLOGFILE:-/tmp/ssl_key.log}"
 
 if [ -z "$NAMESPACE" ]; then usage_and_exit; fi
 if [ -z "$TARGET" ]; then usage_and_exit; fi
@@ -37,15 +46,16 @@ if [ -z "$TARGET" ]; then usage_and_exit; fi
 NAME="${TARGET}-debug"
 NODE="$(oc get --namespace $NAMESPACE pods $TARGET -o go-template='{{ .spec.nodeName }}')"
 CONTAINER_ID="$(oc get --namespace $NAMESPACE pods $TARGET -o go-template='{{ (index .status.containerStatuses 0).containerID }}')"
+CONTAINER_ID="${CONTAINER_ID:8}"
 
 case $WHAT in
   shell)
     run_shell
     ;;
-  tcpdump)
-    run_tcpdump
+  wireshark)
+    run_wireshark
     ;;
   *)
-    usage
+    usage_and_exit
     ;;
 esac
