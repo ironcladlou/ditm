@@ -43,7 +43,8 @@ SSLKEYLOGFILE="${SSLKEYLOGFILE:-/tmp/ssl_key.log}"
 if [ -z "$NAMESPACE" ]; then usage_and_exit; fi
 if [ -z "$TARGET" ]; then usage_and_exit; fi
 
-NAME="${TARGET}-debug-${WHAT}"
+UUID=$(uuidgen | tr "[:upper:]" "[:lower:]")
+NAME="${TARGET}-debug-${UUID:0:8}"
 NODE="$(oc get --namespace $NAMESPACE pods $TARGET -o go-template='{{ .spec.nodeName }}')"
 CONTAINER_ID="$(oc get --namespace $NAMESPACE pods $TARGET -o go-template='{{ (index .status.containerStatuses 0).containerID }}')"
 CONTAINER_ID="${CONTAINER_ID:8}"
