@@ -17,10 +17,10 @@ function cleanup {
 
 function create_pod {
   YAML=$(mktemp)
-  resource=$(oc process -f debugger.yaml NAMESPACE="$NAMESPACE" NAME="$NAME" NODE_NAME="$NODE" CONTAINER_ID="$CONTAINER_ID")
+  resource=$(oc process -f $DIR/debugger.yaml NAMESPACE="$NAMESPACE" NAME="$NAME" NODE_NAME="$NODE" CONTAINER_ID="$CONTAINER_ID")
   echo $resource | oc apply -f -
   trap cleanup EXIT
-  oc wait --for=condition=Ready --namespace=$NAMESPACE pod/$NAME
+  oc wait --for=condition=Ready --timeout=2m --namespace=$NAMESPACE pod/$NAME
 }
 
 function run_shell {
@@ -42,6 +42,8 @@ SSLKEYLOGFILE="${SSLKEYLOGFILE:-/tmp/ssl_key.log}"
 
 if [ -z "$NAMESPACE" ]; then usage_and_exit; fi
 if [ -z "$TARGET" ]; then usage_and_exit; fi
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 UUID=$(uuidgen | tr "[:upper:]" "[:lower:]")
 NAME="${TARGET}-debug-${UUID:0:8}"
