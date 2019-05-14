@@ -43,7 +43,7 @@ SSLKEYLOGFILE="${SSLKEYLOGFILE:-/tmp/ssl_key.log}"
 if [ -z "$NAMESPACE" ]; then usage_and_exit; fi
 if [ -z "$TARGET" ]; then usage_and_exit; fi
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+DIR="$(dirname "$(readlink "$0")")"
 
 UUID=$(uuidgen | tr "[:upper:]" "[:lower:]")
 NAME="${TARGET}-debug-${UUID:0:8}"
