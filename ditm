@@ -33,6 +33,11 @@ function run_wireshark {
   oc exec --namespace $NAMESPACE $NAME -- /bin/bash -c $'PID=$(crictl inspect $CONTAINER_ID -o yaml | grep pid | awk \'{print $2}\'); nsenter -t $PID --net tcpdump -U -w -' | wireshark -k -i - -o "tls.keylog_file: ${SSLKEYLOGFILE}" -o "gui.window_title:${NAMESPACE}/${TARGET}"
 }
 
+function run_nftables {
+  create_pod
+  oc exec --namespace $NAMESPACE $NAME -- /bin/bash -c 'nft list table ip nat'
+}
+
 NAMESPACE="${1:-}"
 TARGET="${2:-}"
 WHAT="${WHAT:-shell}"
@@ -57,6 +62,9 @@ case $WHAT in
     ;;
   wireshark)
     run_wireshark
+    ;;
+  nftables)
+    run_nftables
     ;;
   *)
     usage_and_exit
