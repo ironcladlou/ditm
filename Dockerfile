@@ -1,6 +1,6 @@
 FROM fedora:rawhide
 
-RUN yum install --nogpg -y traceroute curl dnsutils nmap-ncat jq nmap net-tools wget iptables iproute tcpdump procps-ng nftables bind-utils strace jq
+RUN yum install --nogpg -y conntrack iputils traceroute curl dnsutils nmap-ncat jq nmap net-tools wget iptables iproute tcpdump procps-ng nftables bind-utils strace jq
 
 # Install crictl
 ENV CRICTL_VERSION="v1.13.0"
